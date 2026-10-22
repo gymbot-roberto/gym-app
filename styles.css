@@ -133,3 +133,11 @@ tr:last-child td{border:0}
 #toast{position:fixed;top:calc(var(--st) + 56px);left:50%;transform:translateX(-50%);z-index:30;background:rgba(44,44,46,.95);padding:10px 18px;border-radius:20px;font-weight:600;font-size:15px;box-shadow:0 8px 30px rgba(0,0,0,.5);animation:fade .25s var(--ease)}
 body.resting main{padding-bottom:calc(190px + var(--sb))}
 .btn{text-align:center;line-height:1.25}.btn svg{flex:none}
+.wdays{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:var(--s4)}
+.wd{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:11px;color:var(--txt2);font-weight:600}
+.wd i{font-style:normal;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--card2);color:var(--txt);font-size:14px;font-variant-numeric:tabular-nums;border:2px solid transparent}
+.wd i svg{width:18px;height:18px;stroke-width:3}
+.wd.done i{background:var(--acc);color:#002910;animation:pop .3s var(--ease)}
+.wd.today i{border-color:var(--acc)}.wd.today span{color:var(--acc)}
+.wd.fut{opacity:.35}
+.wd.done.today i{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--acc)}

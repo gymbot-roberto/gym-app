@@ -30,7 +30,7 @@ const I={
 };
 const ic=(n,c='')=>`<svg viewBox="0 0 24 24" class="${c}">${I[n]}</svg>`;
 
-function defaults(){return{fichas:[],sessions:[],active:null,water:{goal:3000,log:{}},supl:{list:['Multivitamínico','Creatina'],log:{}},settings:{rest:true,restSec:90}}}
+function defaults(){return{fichas:[],sessions:[],active:null,water:{goal:3000,log:{}},supl:{list:['Multivitamínico','Creatina'],log:{}},settings:{rest:true,restSec:90,weekGoal:5}}}
 let db;
 function load(raw){const d=Object.assign(defaults(),raw||{});const D=defaults();d.water=Object.assign(D.water,d.water);d.supl=Object.assign(D.supl,d.supl);d.settings=Object.assign(D.settings,d.settings);return d}
 try{db=load(JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){db=defaults()}
@@ -65,6 +65,18 @@ const navRight=h=>{$('#navright').innerHTML=h};
 const empty=(i,t,d,btn='')=>`<div class="empty"><div class="ei">${ic(i)}</div><h3>${t}</h3><p>${d}</p>${btn}</div>`;
 function ring(p,size,stroke,inner,cls='',col=''){const r=(size-stroke)/2,c=2*Math.PI*r;return`<div class="ring ${cls}" style="width:${size}px;height:${size}px${col?';--water:'+col:''}"><svg viewBox="0 0 ${size} ${size}"><circle class="bgc" cx="${size/2}" cy="${size/2}" r="${r}" stroke-width="${stroke}"/><circle class="fg" cx="${size/2}" cy="${size/2}" r="${r}" stroke-width="${stroke}" stroke-dasharray="${c}" stroke-dashoffset="${c*(1-Math.min(p,1))}"/></svg><div class="in">${inner}</div></div>`}
 
+function weekStart(d){const x=new Date(d.getFullYear(),d.getMonth(),d.getDate());x.setDate(x.getDate()-((x.getDay()+6)%7));return x}
+function sessDays(){return new Set(db.sessions.map(s=>dkey(new Date(s.date))))}
+function weekCard(){
+  const goal=db.settings.weekGoal||5,days=sessDays(),ws=weekStart(new Date()),tk=today(),L=['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+  let n=0;const pills=L.map((l,i)=>{const d=new Date(ws);d.setDate(d.getDate()+i);const k=dkey(d),done=days.has(k);if(done)n++;
+    const cls=(done?'done ':'')+(k===tk?'today':k>tk?'fut':'');return`<div class="wd ${cls}"><span>${l}</span><i>${done?ic('check'):d.getDate()}</i></div>`}).join('');
+  let streak=0;const w=new Date(ws);if(n<goal)w.setDate(w.getDate()-7);
+  for(let g=0;g<520;g++){let c=0;for(let i=0;i<7;i++){const d=new Date(w);d.setDate(d.getDate()+i);if(days.has(dkey(d)))c++}if(c>=goal){streak++;w.setDate(w.getDate()-7)}else break}
+  return`<div class="card" id="wk"><div class="row"><div class="grow"><div class="t3" style="text-transform:uppercase;letter-spacing:.04em;font-weight:600">Esta semana</div><div class="title num" style="font-size:22px">${n} de ${goal} treinos</div></div>${n>=goal?'<span class="chip" style="background:var(--acc-d);color:var(--acc)">Meta batida</span>':''}</div>
+  <div class="prog mt"><div style="width:${Math.min(1,n/goal)*100}%"></div></div><div class="wdays">${pills}</div>
+  ${streak?`<div class="t2 mt" style="font-size:14px">🔥 Semanas seguidas batendo a meta: <b style="color:var(--txt)">${streak}</b></div>`:''}</div>`;
+}
 // ---------- Home ----------
 function vHome(v){
   const t=today(),ml=db.water.log[t]||0,g=db.water.goal,taken=(db.supl.log[t]||[]).filter(n=>db.supl.list.includes(n));
@@ -79,7 +91,7 @@ function vHome(v){
   else if(next)hero=`<div class="card hero"><div class="k">Próximo treino</div><div class="title" style="font-size:22px;margin:4px 0 2px">${esc(next.name)}</div><div class="t2 ell">${next.exercises.length} exercício${next.exercises.length===1?"":"s"} · ${next.exercises.map(e=>esc(e.name)).join(', ')||'—'}</div><button class="btn pri mt" data-start="${next.id}">${ic('play')}Iniciar treino</button></div>`;
   else hero=`<div class="card hero"><div class="k">Comece aqui</div><div class="title" style="font-size:22px;margin:4px 0 2px">Crie sua primeira ficha</div><div class="t2">Monte seu Treino A, B, C com exercícios, séries e repetições.</div><button class="btn pri mt" id="newf">${ic('plus')}Nova ficha</button></div>`;
   const sp=db.supl.list.length?taken.length/db.supl.list.length:0;
-  v.innerHTML=head(greet+', Roberto',dstr.charAt(0).toUpperCase()+dstr.slice(1))+hero+
+  v.innerHTML=head(greet+', Roberto',dstr.charAt(0).toUpperCase()+dstr.slice(1))+weekCard()+hero+
   `<div class="grid2"><div class="card stat press" id="hw">${ring(ml/g,110,11,`<div class="v num">${Math.round(ml/g*100)}%</div><div class="t3">${fmtL(ml)}</div>`)}<div class="title mt" style="font-size:15px">Água</div><div class="t3">Meta ${fmtL(g)}</div></div>
   <div class="card stat press" id="hs">${ring(sp,110,11,`<div class="v num">${taken.length}/${db.supl.list.length}</div><div class="t3">tomados</div>`,'','#30d158')}<div class="title mt" style="font-size:15px">Suplementos</div><div class="t3">${sp>=1?'Tudo certo hoje':'Faltam '+(db.supl.list.length-taken.length)}</div></div></div>`+
   `<div class="sec">Último treino</div>`+(last?`<div class="list"><div class="li press" data-sess="${last.id}"><div class="ico g">${ic('dumb')}</div><div class="grow"><div class="title ell">${esc(last.fichaName)}</div><div class="t2">${fmtRel(last.date)} · ${last.exercises.filter(e=>e.sets.some(x=>x.done)).length} exercícios · ${Math.round(vol(last))} kg volume</div></div>${ic('chev','chev')}</div></div>`:`<div class="card t2">Nenhum treino registrado ainda.</div>`);
@@ -277,12 +289,14 @@ function vConfig(v){
   const st=db.settings;
   v.innerHTML=head('Ajustes')+`<div class="sec">Timer de descanso</div><div class="list"><div class="li"><span class="grow">Iniciar ao concluir série</span><button class="toggle ${st.rest?'on':''}" id="rt"></button></div>
   <div class="li"><span class="grow">Duração</span><div class="seg" style="width:200px">${[60,90,120,180].map(s=>`<button data-rs="${s}" class="${st.restSec===s?'on':''}">${mmss(s)}</button>`).join('')}</div></div></div>
+  <div class="sec">Meta semanal</div><div class="list"><div class="li"><span class="grow">Treinos por semana</span><button class="btn sm" id="wgm">−</button><b class="num" id="wgv" style="min-width:24px;text-align:center">${st.weekGoal}</b><button class="btn sm" id="wgp">+</button></div></div>
   <div class="sec">Programas prontos</div>${presetBtn('btn')}
   <div class="sec">Backup</div><div class="list"><div class="li press" id="ex"><div class="ico g">${ic('box')}</div><span class="grow">Exportar backup (JSON)</span>${ic('chev','chev')}</div><div class="li press" id="im"><div class="ico b">${ic('up')}</div><span class="grow">Importar backup</span>${ic('chev','chev')}</div></div>
   <p class="t3" style="padding:0 16px">Os dados ficam só neste iPhone. Exporte um backup de vez em quando e salve no app Arquivos.</p><input type="file" id="file" accept=".json,application/json" class="hidden">
   <div class="sec">Instalar</div><div class="card t2" style="font-size:15px">No Safari, toque em Compartilhar → <b style="color:var(--txt)">Adicionar à Tela de Início</b>.</div>
-  <button class="btn danger mt2" id="wipe">Apagar todos os dados</button><p class="t3" style="text-align:center;margin-top:16px">Treinos · versão 3</p>`;
+  <button class="btn danger mt2" id="wipe">Apagar todos os dados</button><p class="t3" style="text-align:center;margin-top:16px">Treinos · versão 4</p>`;
   bindPreset(v);
+  const wg=d=>{st.weekGoal=Math.min(7,Math.max(1,st.weekGoal+d));save();buzz();$('#wgv').textContent=st.weekGoal};$('#wgm').onclick=()=>wg(-1);$('#wgp').onclick=()=>wg(1);
   $('#rt').onclick=()=>{st.rest=!st.rest;save();buzz();$('#rt').classList.toggle('on',st.rest)};
   v.querySelectorAll('[data-rs]').forEach(b=>b.onclick=()=>{st.restSec=+b.dataset.rs;save();buzz();v.querySelectorAll('[data-rs]').forEach(x=>x.classList.toggle('on',x===b))});
   $('#ex').onclick=async()=>{
