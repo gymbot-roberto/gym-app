@@ -94,20 +94,38 @@ function bindStart(v){v.querySelectorAll('[data-start]').forEach(b=>b.onclick=e=
   if(db.active&&!confirm('Já existe um treino em andamento. Descartar e iniciar outro?'))return;
   buzz(15);startSession(b.dataset.start);go('fichas',{session:1})})}
 
+const PRESET_NAME='Hipertrofia 5 dias (foco tronco)';
+const PRESET=[
+['Dia 1 - Push','Supino reto com barra 4x6-8;Supino inclinado com halteres 3x8-10;Desenvolvimento com halteres 3x8-10;Crucifixo no cross over 3x12-15;Elevação lateral 4x12-15;Tríceps na polia com corda 3x10-12'],
+['Dia 2 - Pull','Barra fixa ou puxada aberta 4x6-10;Remada curvada com barra 4x8-10;Remada baixa no triângulo 3x10-12;Pullover na polia 3x12-15;Crucifixo inverso 3x12-15;Rosca direta com barra 3x8-10'],
+['Dia 3 - Pernas','Agachamento livre 4x6-8;Leg press 3x10-12;Stiff 3x8-10;Cadeira extensora 3x12-15;Mesa flexora 3x10-12;Panturrilha em pé 4x10-15'],
+['Dia 4 - Upper','Supino inclinado com barra 4x6-8;Remada unilateral com halter 3x8-10;Supino reto com halteres 3x8-10;Puxada fechada 3x10-12;Peck deck 3x12-15;Face pull 3x15'],
+['Dia 5 - Ombros e Braços','Desenvolvimento militar 4x6-8;Elevação lateral na polia 4x12-15;Crucifixo inverso na máquina 3x12-15;Rosca alternada com halteres 3x10-12;Tríceps francês 3x10-12;Rosca martelo 3x10-12;Tríceps testa 3x10-12']];
+function loadPreset(){
+  if(!confirm('Adicionar as 5 fichas do programa "'+PRESET_NAME+'"? Suas fichas e histórico atuais são mantidos.'))return;
+  let added=0;
+  PRESET.forEach(([name,list])=>{
+    if(db.fichas.some(f=>norm(f.name)===norm(name)))return;
+    db.fichas.push({id:uid(),name,exercises:list.split(';').map(x=>{const m=x.trim().match(/^(.*) (\d+)x(\S+)$/);return{id:uid(),name:m[1],sets:+m[2],reps:m[3]}})});added++;
+  });
+  save();buzz(20);toast(added?`Programa carregado: ${added} ficha${added>1?'s':''} adicionada${added>1?'s':''}`:'Essas fichas já existem');render();
+}
+const presetBtn=(cls='btn tint mt')=>`<button class="${cls}" data-preset>${ic('box')}Carregar programa: ${PRESET_NAME}</button>`;
+const bindPreset=v=>v.querySelectorAll('[data-preset]').forEach(b=>b.onclick=loadPreset);
 // ---------- Fichas ----------
 function vFichas(v){
   navRight(`<button class="navbtn" id="new">${ic('plus')}</button>`);
   let h=head('Treinos');
   if(db.active)h+=`<div class="card hero press" id="resume"><div class="k">Em andamento</div><div class="title" style="font-size:20px;margin-top:4px">${esc(db.active.fichaName)}</div><button class="btn pri mt">${ic('play')}Continuar treino</button></div>`;
-  if(!db.fichas.length)h+=empty('dumb','Nenhuma ficha ainda','Crie fichas como Treino A, B e C para começar a registrar suas cargas.',`<button class="btn pri mt2" id="new2">${ic('plus')}Criar ficha</button>`);
+  if(!db.fichas.length)h+=empty('dumb','Nenhuma ficha ainda','Crie fichas como Treino A, B e C para começar a registrar suas cargas.',`<button class="btn pri mt2" id="new2">${ic('plus')}Criar ficha</button>`+presetBtn());
   else h+=`<div class="sec">Minhas fichas</div>`+db.fichas.map(f=>{const ls=[...db.sessions].reverse().find(s=>s.fichaId===f.id);return`<div class="card"><div class="row"><div class="grow"><div class="title" style="font-size:19px">${esc(f.name)}</div><div class="t3">${f.exercises.length} exercícios${ls?' · último '+fmtRel(ls.date).toLowerCase():''}</div></div><button class="link" data-edit="${f.id}">Editar</button></div>
   <div class="t2 mt" style="font-size:14px">${f.exercises.map(e=>`${esc(e.name)} <span class="t3">${e.sets}×${esc(e.reps)}</span>`).join('<br>')||'Sem exercícios'}</div>
-  <button class="btn tint mt" data-start="${f.id}">${ic('play')}Iniciar</button></div>`}).join('');
+  <button class="btn tint mt" data-start="${f.id}">${ic('play')}Iniciar</button></div>`}).join('')+`<div class="sec">Programas prontos</div>`+presetBtn('btn');
   v.innerHTML=h;
   const nf=()=>go('fichas',{edit:null},true);$('#new').onclick=nf;$('#new2')&&($('#new2').onclick=nf);
   $('#resume')&&($('#resume').onclick=()=>go('fichas',{session:1},true));
   v.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>go('fichas',{edit:b.dataset.edit},true));
-  bindStart(v);
+  bindStart(v);bindPreset(v);
 }
 function startSession(fid){
   const f=db.fichas.find(x=>x.id===fid);
@@ -259,10 +277,12 @@ function vConfig(v){
   const st=db.settings;
   v.innerHTML=head('Ajustes')+`<div class="sec">Timer de descanso</div><div class="list"><div class="li"><span class="grow">Iniciar ao concluir série</span><button class="toggle ${st.rest?'on':''}" id="rt"></button></div>
   <div class="li"><span class="grow">Duração</span><div class="seg" style="width:200px">${[60,90,120,180].map(s=>`<button data-rs="${s}" class="${st.restSec===s?'on':''}">${mmss(s)}</button>`).join('')}</div></div></div>
+  <div class="sec">Programas prontos</div>${presetBtn('btn')}
   <div class="sec">Backup</div><div class="list"><div class="li press" id="ex"><div class="ico g">${ic('box')}</div><span class="grow">Exportar backup (JSON)</span>${ic('chev','chev')}</div><div class="li press" id="im"><div class="ico b">${ic('up')}</div><span class="grow">Importar backup</span>${ic('chev','chev')}</div></div>
   <p class="t3" style="padding:0 16px">Os dados ficam só neste iPhone. Exporte um backup de vez em quando e salve no app Arquivos.</p><input type="file" id="file" accept=".json,application/json" class="hidden">
   <div class="sec">Instalar</div><div class="card t2" style="font-size:15px">No Safari, toque em Compartilhar → <b style="color:var(--txt)">Adicionar à Tela de Início</b>.</div>
-  <button class="btn danger mt2" id="wipe">Apagar todos os dados</button><p class="t3" style="text-align:center;margin-top:16px">Treinos · versão 2</p>`;
+  <button class="btn danger mt2" id="wipe">Apagar todos os dados</button><p class="t3" style="text-align:center;margin-top:16px">Treinos · versão 3</p>`;
+  bindPreset(v);
   $('#rt').onclick=()=>{st.rest=!st.rest;save();buzz();$('#rt').classList.toggle('on',st.rest)};
   v.querySelectorAll('[data-rs]').forEach(b=>b.onclick=()=>{st.restSec=+b.dataset.rs;save();buzz();v.querySelectorAll('[data-rs]').forEach(x=>x.classList.toggle('on',x===b))});
   $('#ex').onclick=async()=>{

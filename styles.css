@@ -132,3 +132,4 @@ tr:last-child td{border:0}
 .seg button.on{background:#636366;color:#fff}
 #toast{position:fixed;top:calc(var(--st) + 56px);left:50%;transform:translateX(-50%);z-index:30;background:rgba(44,44,46,.95);padding:10px 18px;border-radius:20px;font-weight:600;font-size:15px;box-shadow:0 8px 30px rgba(0,0,0,.5);animation:fade .25s var(--ease)}
 body.resting main{padding-bottom:calc(190px + var(--sb))}
+.btn{text-align:center;line-height:1.25}.btn svg{flex:none}
