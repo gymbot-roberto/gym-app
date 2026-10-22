@@ -1,4 +1,4 @@
-const C='treinos-v4',F=['./','index.html','app.js?v=4','styles.css?v=4','manifest.json','icons/icon-180.png','icons/icon-192.png','icons/icon-512.png'];
+const C='treinos-v5',F=['./','index.html','app.js?v=5','styles.css?v=5','manifest.json','icons/icon-180.png','icons/icon-192.png','icons/icon-512.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(F)));self.skipWaiting()});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))));self.clients.claim()});
 self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;e.respondWith(fetch(e.request).then(r=>{const cp=r.clone();caches.open(C).then(c=>c.put(e.request,cp));return r}).catch(()=>caches.match(e.request,{ignoreSearch:true})))});
